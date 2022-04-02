@@ -6,50 +6,87 @@ import com.example.webpos.model.Item;
 import com.example.webpos.model.Product;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.web.context.annotation.SessionScope;
 
-import java.io.Serializable;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 
 @Component
-public class PosServiceImp implements PosService, Serializable {
+public class PosServiceImp implements PosService {
 
     private PosDB posDB;
+    private double checkoutAmount;
+    private Cart cart;
 
     @Autowired
     public void setPosDB(PosDB posDB) {
         this.posDB = posDB;
     }
 
-
     @Override
-    public Product randomProduct() {
-        return products().get(ThreadLocalRandom.current().nextInt(0, products().size()));
+    public Cart getCart() {
+
+        if (this.cart == null)
+            return this.newCart();
+        return this.cart;
     }
 
     @Override
-    public void checkout(Cart cart) {
+    public Cart newCart() {
+        this.cart = new Cart();
+        return this.cart;
+    }
+
+    @Override
+    public double checkout(Cart cart) {
+        double amount = cart.total();
+        cart.removeAll();
+        return amount;
+    }
+
+    @Override
+    public void total(Cart cart) {
 
     }
 
     @Override
-    public Cart add(Cart cart, Product product, int amount) {
-        return add(cart, product.getId(), amount);
+    public boolean add(Cart cart, Product product, int amount) {
+        return false;
     }
 
     @Override
-    public Cart add(Cart cart, String productId, int amount) {
+    public boolean add(Cart cart, String productId, int amount) {
 
         Product product = posDB.getProduct(productId);
-        if (product == null) return cart;
+        if (product == null) return false;
 
         cart.addItem(new Item(product, amount));
-        return cart;
+        return true;
     }
 
     @Override
     public List<Product> products() {
         return posDB.getProducts();
     }
+
+    @Override
+    public boolean modify(Cart cart, String productId, int amount) {
+        Product product = posDB.getProduct(productId);
+        if (product == null) return false;
+
+        return cart.modifyItem(product,amount);
+    }
+
+    @Override
+    public boolean remove(Cart cart, String productId) {
+        Product product = posDB.getProduct(productId);
+        if (product == null)
+            return false;
+        return cart.modifyItem(product, 0);
+    }
+
+    @Override
+    public boolean empty(Cart cart) {
+        return cart.removeAll();
+    }
+
+    
 }
